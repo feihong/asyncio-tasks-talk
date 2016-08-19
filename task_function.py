@@ -15,5 +15,5 @@ class Writer:
 
 
 coroutine = long_task(Writer())
-loop = asyncio.get_event_loop()
-loop.run_until_complete(coroutine)
+asyncio.ensure_future(coroutine)
+asyncio.get_event_loop()run_forever()
