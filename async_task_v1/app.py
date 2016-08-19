@@ -21,7 +21,6 @@ async def websocket(request):
             task = asyncio.ensure_future(coroutine)
             await task
             print('Finished task')
-            # writer.write(type='done')
 
     return ws
 

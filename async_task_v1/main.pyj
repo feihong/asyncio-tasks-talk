@@ -1,6 +1,3 @@
-from wsclient import WsClient
-
-
 ws = new WebSocket('ws://localhost:5000/websocket/')
 ws.onmessage = def(evt):
     obj = JSON.parse(evt.data)
