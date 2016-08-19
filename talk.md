@@ -1,4 +1,5 @@
 # Using Tasks in Your Asyncio Web App
+
 ## ChiPy
 ## August 11, 2016
 ### Feihong Hsu
@@ -6,6 +7,13 @@
 
 ---
 
+This talk can be found online at github.com/asyncio-tasks-talk, including
+
+- Slides
+- Notes
+- Example programs
+
+---
 # What
 
 In this talk, I will be talking about starting, stopping, and displaying incremental data from long-running tasks in an asyncio-based web application.
@@ -17,24 +25,31 @@ The examples for this talk were made to run on [muffin](https://github.com/klen/
 
 You could just run tasks in Celery, so why bother with asyncio?
 
-Well, depending on your circumstances, using asyncio can result in simpler code and better performance.
+Well, depending on your circumstances, using asyncio can lead to
+
+- A simpler architecture
+- Less code
+- Better performance
+
+^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. Asyncio tasks run within the same process.
+
+^ Less code: You don't need to worry about interprocess communication. Tasks are just functions, and can accept any kind of argument.
+
+^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can much many more simultaneously open connections.
 
 ---
-# Three types of tasks
+# The three types of tasks we'll talk about today
 
 - Asynchronous
-- Synchronous (via ThreadExecutor)
+- Synchronous
 - Inside web socket handler
+
+^ The synchronous task will be run in a separate thread.
 
 ---
 # Asynchronous task
 
-- Put everything in web socket handler
-- Use a class as the handler since there are callbacks involved
-- Functionality:
-  - Start
-  - Stop
-  - Send messages to browser
+We'll start the task in a web socket handler. This makes the most sense if we're going to use a web socket to push messages to the client.
 
 ---
 # Task function
@@ -48,13 +63,16 @@ async def long_task(writer):
         await asyncio.sleep(0.05)
 ```
 
+^ The async and await keywords were introduced in Python 3.5.
+
+^ The thing to remember about async functions is that when you call them, you don't get back the value that you return in the function. Instead, you will get a coroutine object, which is pretty much useless unless you have an event loop running.
+
 ---
 # Launching the task
 
 ```python
 coroutine = long_task(WebSocketWriter(websocket))
 task = asyncio.ensure_future(coroutine)
-task.add_done_callback(done_cabllback)
 ```
 
 ---
