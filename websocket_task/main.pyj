@@ -1,0 +1,27 @@
+from wsclient import WsClient
+
+
+class MyClient(WsClient):
+    url = '/websocket/'
+    auto_dispatch = True
+
+    def on_open(self, evt):
+        print('Websocket opened')
+
+    def on_close(self, evt):
+        print('Websocket closed')
+
+    def on_results(evt, obj):
+        print(obj)
+        row = jq('.results .result-row').get(obj['page'])
+        row = jq(row)
+        obj['value'].forEach(def(value, index):
+            result = jq(row.find('.result').get(index))
+            result
+            .empty()
+            .removeClass('incomplete')
+            .text(value)
+        )
+
+jq = window.jQuery
+client = MyClient()
