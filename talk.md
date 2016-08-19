@@ -1,7 +1,7 @@
 # Using Tasks in Your Asyncio Web App
 
-## ChiPy
-## August 11, 2016
+## ChiPy Web SIG
+## August ??, 2016
 ### Feihong Hsu
 ### github.com/feihong
 
@@ -35,7 +35,7 @@ Well, depending on your circumstances, using asyncio can lead to
 
 ^ Less code: You don't need to worry about interprocess communication. Tasks are just functions, and can accept any kind of argument.
 
-^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can much many more simultaneously open connections.
+^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can have many more simultaneously open connections.
 
 ---
 # The three types of tasks we'll talk about today
@@ -68,29 +68,31 @@ async def long_task(writer):
 ^ The thing to remember about async functions is that when you call them, you don't get back the value that you return in the function. Instead, you will get a coroutine object, which is pretty much useless unless you have an event loop running.
 
 ---
-# Launching the task
+# Scheduling the task function
 
 ```python
-coroutine = long_task(WebSocketWriter(websocket))
-task = asyncio.ensure_future(coroutine)
+coroutine = long_task(writer)
+asyncio.ensure_future(coroutine)
+
+asyncio.get_event_loop()run_forever()
 ```
 
 ---
-# The on_message() method
+# The web socket handler
 
 ```python
-async def on_message(self, msg):
-    print(msg)
-    if msg.data == 'start' and not self.task:
-        coroutine = long_task(WebSocketWriter(self.websocket))
-        self.task = asyncio.ensure_future(coroutine)
-        self.task.add_done_callback(self.done_callback)
-    elif msg.data == 'stop' and self.task:
-        self.task.cancel()
-        self.task = None
+@app.register('/websocket/')
+async def websocket(request):
+    ws = muffin.WebSocketResponse()
+    await ws.prepare(request)
+    writer = WebSocketWriter(ws)
 
-def done_callback(self, future):
-    self.task = None
+    async for msg in ws:
+        if msg.data == 'start':
+            coroutine = long_task(WebSocketWriter(ws))
+            task = asyncio.ensure_future(coroutine)
+
+    return ws
 ```
 
 ---
@@ -103,33 +105,19 @@ def done_callback(self, future):
 # Client code
 
 ```python
-class MyClient(WsClient):
-    url = '/websocket/'
-    auto_dispatch = True
-
-    def on_progress(self, obj):
-        print(obj)
-        percent = obj['value'] / obj['total'] * 100
-        jq('progress').val(percent)
-        jq('.percent').text(str.format('{}%', percent.toFixed(0)))
+ws = new WebSocket('ws://localhost:5000/websocket/')
+ws.onmessage = def(evt):
+    obj = JSON.parse(evt.data)
+    print(obj)
+    percent = obj['value'] / obj['total'] * 100
+    jq('progress').val(percent)
+    jq('.percent').text(str.format('{}%', percent.toFixed(0)))
 ```
+
+^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the anonymous function, which is a special syntax that the RapydScript compiler supports. The `jq` variable references the jQuery function.
 
 ---
-# Using the native API
-
-```python
-ws = WebSocket('ws://' + document.location.host + '/websocket/')
-
-ws.onopen = def(evt):
-  print('Websocket opened')
-
-ws.onclose = def(evt):
-  print('Websocket closed')
-
-ws.onmessage = def(evt):
-  obj = JSON.parse(evt.data)
-  print(obj)
-```
+# Adding the ability to cancel the task
 
 ---
 # Synchronous task
