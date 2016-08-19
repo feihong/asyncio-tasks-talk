@@ -1,10 +1,3 @@
-"""
-To run:
-
-muffin app run
-
-"""
-import json
 import asyncio
 import muffin
 from muffin_playground import Application, WebSocketHandler, WebSocketWriter
