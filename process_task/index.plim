@@ -1,0 +1,18 @@
+-inherit boilerplate.plim
+
+-block title
+  Process task
+
+-block extrahead
+  link rel='stylesheet' href='styles.styl'
+
+-block extrascript
+  script src='main.pyj'
+
+-block body
+  .container
+    h1 = title()
+
+    p tbd
+
+    p Hello
