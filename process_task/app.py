@@ -15,7 +15,6 @@ app = Application()
 async def websocket(request):
     ws = muffin.WebSocketResponse()
     await ws.prepare(request)
-    print('connected')
     async for msg in ws:
         print(msg.data)
     return ws
