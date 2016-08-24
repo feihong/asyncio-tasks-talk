@@ -2,20 +2,19 @@ from wsclient import WsClient
 
 
 class MyClient(WsClient):
-    url = '/websocket/'
+    url = '/progress/'
     auto_dispatch = True
 
-    def on_results(evt, obj):
+    def on_open(evt):
+        print('web socket open')
+
+    def on_progress(evt, obj):
         print(obj)
-        row = jq('.results .result-row').get(obj['page'])
-        row = jq(row)
-        obj['value'].forEach(def(value, index):
-            result = jq(row.find('.result').get(index))
-            result
-            .empty()
-            .removeClass('incomplete')
-            .text(value)
-        )
+
 
 jq = window.jQuery
 client = MyClient()
+
+jq('button').on('click', def():
+    jq.get('/start-task/')
+)

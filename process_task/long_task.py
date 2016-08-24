@@ -1,18 +1,19 @@
 import sys
 import time
 import json
+import random
 
 import websocket
 
 
-def long_task(url):
+def long_task(url, name):
     ws = websocket.WebSocket()
     ws.connect(url)
 
     total = 150
     for i in range(1, total+1):
-        print(i)
-        data = dict(type='progress', value=i, total=total)
+        # print(i)
+        data = dict(type='progress', name=name, value=i, total=total)
         ws.send(json.dumps(data))
         time.sleep(0.05)
 
@@ -20,5 +21,5 @@ def long_task(url):
 
 
 if __name__ == '__main__':
-    # url = sys.argv[1]
-    long_task('ws://localhost:5000/report/')
+    url, name = sys.argv[1:]
+    long_task(url, name)
