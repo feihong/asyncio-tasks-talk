@@ -13,4 +13,7 @@
   .container
     h1 = title()
 
-    button.btn.btn-primary Run task in process
+    p
+      button.btn.btn-primary Run task in process
+
+    .progress-container

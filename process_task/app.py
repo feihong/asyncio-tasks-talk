@@ -19,8 +19,8 @@ async def start_task(request):
 
     proc = await asyncio.create_subprocess_exec(
         'python', 'long_task.py', 'ws://localhost:5000/report/', name)
-    print(proc)
-    return 'ok'
+
+    return str(proc)
 
 
 @app.register('/progress/')

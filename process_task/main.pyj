@@ -9,11 +9,22 @@ class MyClient(WsClient):
         print('web socket open')
 
     def on_progress(evt, obj):
-        print(obj)
+        name = obj['name']
+        if name in progress_map:
+            progress = progress_map[name]
+        else:
+            prog_item = jq('<div class="progress-item">').appendTo('.progress-container')
+            jq('<div class="name">').text(name).appendTo(prog_item)
+            progress = jq('<progress max=100>').appendTo(prog_item)
+            progress_map[name] = progress
+
+        percent = obj['value'] / obj['total'] * 100
+        progress.val(percent)
 
 
 jq = window.jQuery
 client = MyClient()
+progress_map = {}
 
 jq('button').on('click', def():
     jq.get('/start-task/')
