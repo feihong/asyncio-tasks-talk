@@ -1,13 +1,13 @@
 # Using Tasks in Your Asyncio Web App
 
-## ChiPy Web SIG
-## August ??, 2016
+## ChiPy
+## September 8, 2016
 ### Feihong Hsu
 ### github.com/feihong
 
 ---
 
-This talk can be found online at github.com/asyncio-tasks-talk, including
+This talk can be found online at the repo github.com/feihong/asyncio-tasks-talk, which includes
 
 - Slides
 - Notes
@@ -20,36 +20,39 @@ In this talk, I will be talking about starting, stopping, and displaying increme
 
 The examples for this talk were made to run on [muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
 
+^ The Muffin API, especially for defining routes and request handlers, seems to be modeled after the Flask API. But everything that works in aiohttp still works in aiohttp.
+
 ---
 # Why
 
-You could just run tasks in Celery, so why bother with asyncio?
+You could just run tasks in Celery or Django Channels, so why bother with asyncio?
 
-Well, depending on your circumstances, using asyncio can lead to
+Depending on your circumstances, using asyncio can lead to
 
 - A simpler architecture
 - Less code
 - Better performance
 
-^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. Asyncio tasks run within the same process.
+^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. With Django Channels, you need to setup Redis. Asyncio tasks run within the same process.
 
 ^ Less code: You don't need to worry about interprocess communication. Tasks are just functions, and can accept any kind of argument.
 
 ^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can have many more simultaneously open connections.
 
 ---
-# The three types of tasks we'll talk about today
+# Types of tasks we'll talk about today
 
 - Asynchronous
-- Synchronous
+- Synchronous (using ThreadExecutor)
 - Inside web socket handler
-
-^ The synchronous task will be run in a separate thread.
+- Inside a separate process
 
 ---
 # Asynchronous task
 
-We'll start the task in a web socket handler. This makes the most sense if we're going to use a web socket to push messages to the client.
+We'll start the task in a web socket handler. This makes the most sense if we want the browser to receive messages from the task.
+
+If you don't need the task to communicate with the browser, then using an Ajax call would be fine.
 
 ---
 # Task function
@@ -118,6 +121,8 @@ ws.onmessage = def(evt):
 
 ---
 # Adding the ability to cancel the task
+
+
 
 ---
 # Synchronous task
