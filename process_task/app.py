@@ -8,6 +8,7 @@ NAMES = ['mario', 'luigi', 'toadstool', 'peach', 'bowser', 'koopa', 'goomba']
 
 
 app = Application()
+app.register_special_static_route()
 app.sockets = set()
 app.task_id = 1
 
@@ -49,6 +50,3 @@ async def websocket(request):
 def send_to_all(data):
     for ws in app.sockets:
         ws.send_str(data)
-
-
-app.register_static_resource()

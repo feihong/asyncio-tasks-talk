@@ -18,8 +18,11 @@ class MyClient(WsClient):
             progress = jq('<progress max=100>').appendTo(prog_item)
             progress_map[name] = progress
 
-        percent = obj['value'] / obj['total'] * 100
-        progress.val(percent)
+        if obj['value'] == obj['total']:
+            progress.parent().remove()
+        else:
+            percent = obj['value'] / obj['total'] * 100
+            progress.val(percent)
 
 
 jq = window.jQuery
