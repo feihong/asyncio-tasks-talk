@@ -40,6 +40,92 @@ Depending on your circumstances, using asyncio can lead to
 ^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can have many more simultaneously open connections.
 
 ---
+# Overview of asyncio concepts
+
+- Coroutine objects
+- Coroutine functions (async functions)
+- Tasks
+
+---
+# What is a coroutine object?
+
+An "object [representing] a computation or an I/O operation (usually a combination) that will complete eventually"
+
+Originally, coroutine objects were essentially glorified generators. Python 3.5 introduced native coroutine objects, which are created by coroutine functions using the `async def` syntax.
+
+^ Source: https://docs.python.org/3/library/asyncio-task.html
+
+^ Source: https://www.python.org/dev/peps/pep-0492/#rationale-and-goals
+
+---
+# What is a coroutine function?
+
+Coroutine functions are functions that define a coroutine, using either the `async def` syntax or the `@asyncio.coroutine` decorator.
+
+If you don't need to worry about backwards compatibility, you should use the new-style coroutine functions that use `async def`.
+
+^ New-style coroutine functions are not only more readable, you can avoid the problem with old-style generator coroutine functions where it can suddenly stop becoming a coroutine function if you delete its `yield from` statements during a refactor.
+
+---
+# A very simple coroutine function
+
+```python
+import asyncio
+
+async def hello():
+    print('Hello Task!')
+
+coroutine = hello()
+asyncio.get_event_loop().run_until_complete(coroutine)
+```
+
+^ Note that the `hello` function does not return `None` like it would if it wasn't defined with `async def`.
+
+---
+# Return values of coroutine functions
+
+```python
+import asyncio
+
+async def add(x, y):
+    await asyncio.sleep(2)
+    return x + y
+
+async def main():
+    return_value = await add(4, 7)
+    print(return_value)
+
+asyncio.get_event_loop().run_until_complete(main())
+```
+
+^ You can only access the return value of a coroutine function inside another coroutine function.
+
+---
+# What is a task?
+
+"A task is responsible for executing a coroutine object in an event loop."
+
+"Don’t directly create Task instances: use the ensure_future() function or the AbstractEventLoop.create_task() method."
+
+In an event-loop-based program, you use tasks instead of threads to implement concurrency.
+
+^ Source: https://docs.python.org/3/library/asyncio-task.html#task
+
+---
+# A simple task
+
+```python
+import asyncio
+
+async def hello():
+    print('Hello Task!')
+
+asyncio.ensure_future(hello())
+asyncio.get_event_loop().run_forever()
+```
+^ The `asyncio.ensure_future()` function schedules the execution of the given coroutine object, wraps it in a task, and returns the task.
+
+---
 # Types of tasks we'll talk about today
 
 - Asynchronous
