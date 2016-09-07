@@ -1,15 +1,10 @@
 from wsclient import WsClient
+jq = window.jQuery
 
 
 class MyClient(WsClient):
     url = '/websocket/'
     auto_dispatch = True
-
-    def on_open(self, evt):
-        print('Websocket opened')
-
-    def on_close(self, evt):
-        print('Websocket closed')
 
     def on_progress(self, obj):
         print(obj)
@@ -19,8 +14,6 @@ class MyClient(WsClient):
 
 
 client = MyClient()
-
-jq = window.jQuery
 
 jq('button.start').on('click', def(evt):
     client.send_text('start')
