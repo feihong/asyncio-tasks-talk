@@ -18,9 +18,9 @@ This talk can be found online at the repo github.com/feihong/asyncio-tasks-talk,
 
 In this talk, I will be talking about starting, stopping, and displaying incremental data from long-running tasks in an asyncio-based web application.
 
-The examples for this talk were made to run on [muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
+The examples for this talk were made to run on [Muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
 
-^ The Muffin API, especially for defining routes and request handlers, seems to be modeled after the Flask API. But everything that works in aiohttp still works in aiohttp.
+^ The Muffin API, especially for defining routes and request handlers, seems to be modeled after the Flask API. But everything that works in aiohttp still works in Muffin.
 
 ---
 # Why
@@ -33,7 +33,7 @@ Depending on your circumstances, using asyncio can lead to
 - Less code
 - Better performance
 
-^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. With Django Channels, you need to setup Redis. Asyncio tasks run within the same process.
+^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. With Django Channels, you need to setup Redis. Asyncio tasks are generally functions that run within a single process.
 
 ^ Less code: You don't need to worry about interprocess communication. Tasks are just functions, and can accept any kind of argument.
 
@@ -42,9 +42,9 @@ Depending on your circumstances, using asyncio can lead to
 ---
 # Overview of asyncio concepts
 
-- Coroutine objects
-- Coroutine functions (async functions)
-- Tasks
+- Coroutine object
+- Coroutine function (async function)
+- Task
 
 ---
 # What is a coroutine object?
@@ -62,9 +62,9 @@ Originally, coroutine objects were essentially glorified generators. Python 3.5 
 
 Coroutine functions are functions that define a coroutine, using either the `async def` syntax or the `@asyncio.coroutine` decorator.
 
-If you don't need to worry about backwards compatibility, you should use the new-style coroutine functions that use `async def`.
+If you don't need to worry about backwards compatibility, you should almost always use  new-style coroutine functions that use `async def`.
 
-^ New-style coroutine functions are not only more readable, you can avoid the problem with old-style generator coroutine functions where it can suddenly stop becoming a coroutine function if you delete its `yield from` statements during a refactor.
+^ New-style coroutine functions are more readable and much more explicit. The `@asyncio.coroutine` decorator doesn't actually enforce anything, and can be successfully applied to a non-coroutine function. You'll only find out the hard way when your program crashes.
 
 ---
 # A very simple coroutine function
@@ -79,7 +79,7 @@ coroutine = hello()
 asyncio.get_event_loop().run_until_complete(coroutine)
 ```
 
-^ Note that the `hello` function does not return `None` like it would if it wasn't defined with `async def`.
+^ If the `hello` function was not defined with `async def`, it would implicitly return `None`. Instead, it returns a coroutine object.
 
 ---
 # Return values of coroutine functions
@@ -98,18 +98,18 @@ async def main():
 asyncio.get_event_loop().run_until_complete(main())
 ```
 
-^ You can only access the return value of a coroutine function inside another coroutine function.
+^ You can only access the return value of a coroutine function inside another coroutine function, and only via the use of an `await` expression.
 
 ---
 # What is a task?
 
-"A task is responsible for executing a coroutine object in an event loop."
+In an event-loop-based program, you primarily use tasks instead of threads to implement concurrency.
 
-"Don’t directly create Task instances: use the ensure_future() function or the AbstractEventLoop.create_task() method."
-
-In an event-loop-based program, you use tasks instead of threads to implement concurrency.
+"Don’t directly create Task instances: use the `ensure_future()` function or the `AbstractEventLoop.create_task()` method."
 
 ^ Source: https://docs.python.org/3/library/asyncio-task.html#task
+
+^ The `asyncio.Task` class has a very similar API to that of the `concurrent.futures.Future` class.
 
 ---
 # A simple task
@@ -123,7 +123,10 @@ async def hello():
 asyncio.ensure_future(hello())
 asyncio.get_event_loop().run_forever()
 ```
-^ The `asyncio.ensure_future()` function schedules the execution of the given coroutine object, wraps it in a task, and returns the task.
+
+^ Here, the `asyncio.ensure_future()` function schedules the execution of the given coroutine object, wraps it in a task, and returns the task.
+
+^ You should generally use `asyncio.ensure_future()` over `AbstractEventLoop.create_task()` since the former accepts any awaitable object, while the latter only accepts coroutine objects.
 
 ---
 # Types of tasks we'll talk about today
