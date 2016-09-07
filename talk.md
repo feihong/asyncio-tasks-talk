@@ -33,11 +33,11 @@ Depending on your circumstances, using asyncio can lead to
 - Less code
 - Better performance
 
-^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. With Django Channels, you need to setup Redis. Asyncio tasks are generally functions that run within a single process.
+^ Simpler architecture: With Celery, you'd also also need to set up RabbitMQ and the Celery task runner. With Django Channels, you need to set up Redis.
 
-^ Less code: You don't need to worry about interprocess communication. Tasks are just functions, and can accept any kind of argument.
+^ Less code: You don't need to worry about interprocess communication and serialization. Tasks are just functions, and can accept any kind of argument.
 
-^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio I/O operations don't block, you can have many more simultaneously open connections.
+^ Better performance: Asyncio tasks are much more scalable than threads. Because asyncio network operations don't block, you can have many more simultaneously open connections.
 
 ---
 # Overview of asyncio concepts
@@ -62,9 +62,9 @@ Originally, coroutine objects were essentially glorified generators. Python 3.5 
 
 Coroutine functions are functions that define a coroutine, using either the `async def` syntax or the `@asyncio.coroutine` decorator.
 
-If you don't need to worry about backwards compatibility, you should almost always use  new-style coroutine functions that use `async def`.
+If you don't need to worry about backwards compatibility, you should almost always use  new-style coroutine functions that return native coroutine objects.
 
-^ New-style coroutine functions are more readable and much more explicit. The `@asyncio.coroutine` decorator doesn't actually enforce anything, and can be successfully applied to a non-coroutine function. You'll only find out the hard way when your program crashes.
+^ New-style coroutine functions are more readable and more explicit. The `@asyncio.coroutine` decorator doesn't actually enforce anything, and can be successfully applied to a non-coroutine function. You'll only find out the hard way when your program crashes.
 
 ---
 # A very simple coroutine function
@@ -136,12 +136,12 @@ asyncio.get_event_loop().run_forever()
 - Inside web socket handler
 - Inside a separate process
 
+^ Note that from this point on, when we refer to a "task", we are talking about the general sense of the word, i.e. a long-running operation, as opposed to an instance of the `asyncio.Task` class.
+
 ---
 # Asynchronous task
 
-We'll start the task in a web socket handler. This makes the most sense if we want the browser to receive messages from the task.
-
-If you don't need the task to communicate with the browser, then using an Ajax call would be fine.
+The default type of task that asyncio supports. You define it using a coroutine function, and schedule it using the `asyncio.ensure_future()` function.
 
 ---
 # Task function
@@ -154,10 +154,6 @@ async def long_task(writer):
         print(i)
         await asyncio.sleep(0.05)
 ```
-
-^ The async and await keywords were introduced in Python 3.5.
-
-^ The thing to remember about async functions is that when you call them, you don't get back the value that you return in the function. Instead, you will get a coroutine object, which is pretty much useless unless you have an event loop running.
 
 ---
 # Scheduling the task function
