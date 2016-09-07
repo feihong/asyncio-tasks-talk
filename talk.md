@@ -295,9 +295,15 @@ class MyClient(WsClient):
 ^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message to decide which method should handle the message. In this case, all messages of type 'progress' will be dispatched to the `on_progress()` method.
 
 ---
+# Demo
+
+- cd into `async_task_v2`
+- Run program: `muffin app run`
+
+---
 # Synchronous task
 
-We'll do everything we did for the asynchronous task, except that our task function this time is a normal Python function.
+This is a way to take advantage of synchronous code or APIs that cannot be directly run by the asyncio event loop. This time, you define the logic inside a normal function, and have asyncio execute the function using a thread pool. You have to be more careful about writing to websockets because your task is running from another thread and asyncio methods are generally not thread safe.
 
 ---
 # Task function
