@@ -141,7 +141,7 @@ asyncio.get_event_loop().run_forever()
 ---
 # Asynchronous task
 
-The default type of task that asyncio supports. You define it using a coroutine function, and schedule it using the `asyncio.ensure_future()` function.
+This is the simplest way to implement concurrency in an asyncio web app. You define the logic using a coroutine function, and schedule it using the `asyncio.ensure_future()` function. To send messages to the client, directly write to the websocket from inside your coroutine function.
 
 ---
 # Task function
@@ -211,6 +211,8 @@ jq('button.start').on('click', on_click)
 
 ^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the new operator, which is special syntax that the RapydScript compiler supports.
 
+^ We could've also used an Ajax call to start the task. But in this example, we want to receive messages from the websocket, so it makes more sense to send the 'start' message through the websocket (saving us from having to write another request handler).
+
 ---
 ### Client code, websocket message handler
 
@@ -230,7 +232,28 @@ ws.onmessage = on_message
 ---
 # Adding the ability to cancel the task
 
+Great, we can now start a long-running task from a web page! But, what if we want to give the user the ability to cancel the task?
 
+The `asyncio.Task` class has a `cancel()` method, but we now need to keep a reference to the task object. This necessitates a pretty big refactoring.
+
+---
+# New web socket request handler
+
+```python
+@app.register('/websocket/')
+class WSHandler(WebSocketHandler):
+    async def on_open(self):
+        self.task = None
+        self.writer = WebSocketWriter(self.websocket)
+
+    def task_done_callback(self, future):
+        self.task = None
+
+    async def on_message(self, msg):
+        pass  # next slide
+```
+
+^ We now want to use a class instead of a function to handle this, because there are now callbacks involved. Of course you could use inner functions but it tends to be a bit less readable.
 
 ---
 # Synchronous task
