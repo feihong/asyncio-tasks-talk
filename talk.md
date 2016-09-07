@@ -237,7 +237,7 @@ Great, we can now start a long-running task from a web page! But, what if we wan
 The `asyncio.Task` class has a `cancel()` method, but we now need to keep a reference to the task object. This necessitates a pretty big refactoring.
 
 ---
-# New web socket request handler
+## New web socket request handler
 
 ```python
 @app.register('/websocket/')
@@ -249,11 +249,50 @@ class WSHandler(WebSocketHandler):
     def task_done_callback(self, future):
         self.task = None
 
-    async def on_message(self, msg):
-        pass  # next slide
+    # next slide
 ```
 
-^ We now want to use a class instead of a function to handle this, because there are now callbacks involved. Of course you could use inner functions but it tends to be a bit less readable.
+^ We now want to use a class instead of a function to handle this, because there are now callbacks involved. You could instead use inner functions but the code tends to be less readable.
+
+---
+## New web socket request handler (2)
+
+```python
+@app.register('/websocket/')
+class WSHandler(WebSocketHandler):
+    # previous slide
+
+    async def on_message(self, msg):
+        print(msg)
+        if msg.data == 'start' and not self.task:
+            self.task = asyncio.ensure_future(long_task(self.writer))
+            self.task.add_done_callback(self.task_done_callback)
+        elif msg.data == 'stop' and self.task:
+            self.task.cancel()
+```
+
+^ This code not only allows you to stop the task, it also ensures that there is only one task running from a single websocket connection. You should to use `Task.add_done_callback()` here because you don't know exactly when the task will terminate. It's possible to use `await self.task` to wait until the task completes to do the cleanup, but that can lock up the handler for a long amount of time, preventing it from responding to other messages during the wait.
+
+---
+# Updated client code
+
+```python
+from wsclient import WsClient
+
+class MyClient(WsClient):
+    url = '/websocket/'
+    auto_dispatch = True
+
+    def on_progress(self, obj):
+        print(obj)
+        percent = obj['value'] / obj['total'] * 100
+        jq('progress').val(percent)
+        jq('.percent').text(str.format('{}%', percent.toFixed(0)))
+```
+
+^ The `WsClient` convenience class is provided by muffin-playground. It is made available for import because muffin-playground puts its resources directory on RapydScript's import path. Muffin-playground's resources directory contains a file called `wsclient.pyj`.
+
+^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message to decide which method should handle the message. In this case, all messages of type 'progress' will be dispatched to the `on_progress()` method.
 
 ---
 # Synchronous task
