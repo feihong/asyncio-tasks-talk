@@ -156,17 +156,20 @@ async def long_task(writer):
 ```
 
 ---
-# Scheduling the task function
+# Muffin web app boilerplate
 
 ```python
-coroutine = long_task(writer)
-asyncio.ensure_future(coroutine)
+import muffin
+from muffin_playground import Application, WebSocketWriter
 
-asyncio.get_event_loop()run_forever()
+app = Application()
+app.register_special_static_route()
 ```
 
+^ `WebSocketWriter` is a very small convenience class that makes it easy to send JSON-encoded data through a websocket.
+
 ---
-# The web socket handler
+# The web socket request handler
 
 ```python
 @app.register('/websocket/')
@@ -177,32 +180,52 @@ async def websocket(request):
 
     async for msg in ws:
         if msg.data == 'start':
-            coroutine = long_task(WebSocketWriter(ws))
+            coroutine = long_task(writer)
             task = asyncio.ensure_future(coroutine)
 
     return ws
 ```
 
+^ In Muffin and aiohttp, the only difference between a normal request handler and a websocket request handler is that in the latter, a web socket response object is created.
+
+^ Note the `async for` syntax. This was introduced in Python 3.5 along with the `async def` and `async with` syntax. In this example, the async for loop automatically terminates when the `WebSocketResponse` object receives a message of type `MSG_CLOSE`.
+
 ---
 # Demo
 
-- Show entire Python program
+- cd into `async_task_v1`
 - Run program: `muffin app run`
 
 ---
 # Client code
 
 ```python
+jq = window.jQuery
 ws = new WebSocket('ws://localhost:5000/websocket/')
-ws.onmessage = def(evt):
-    obj = JSON.parse(evt.data)
-    print(obj)
-    percent = obj['value'] / obj['total'] * 100
-    jq('progress').val(percent)
-    jq('.percent').text(str.format('{}%', percent.toFixed(0)))
+
+def on_click(evt):
+    ws.send('start')
+
+jq('button.start').on('click', on_click)
 ```
 
-^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the anonymous function, which is a special syntax that the RapydScript compiler supports. The `jq` variable references the jQuery function.
+^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the new operator, which is special syntax that the RapydScript compiler supports.
+
+---
+### Client code, websocket message handler
+
+```python
+def on_message(evt):
+  obj = JSON.parse(evt.data)
+  print(obj)
+  percent = obj['value'] / obj['total'] * 100
+  jq('progress').val(percent)
+  jq('.percent').text(str.format('{}%', percent.toFixed(0)))
+
+ws.onmessage = on_message
+```
+
+^ Because RapydScript uses JS strings instead of Python strings, some of the familiar Python string methods are available as functions on the built-in `str` module.
 
 ---
 # Adding the ability to cancel the task

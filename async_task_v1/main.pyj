@@ -1,13 +1,17 @@
+jq = window.jQuery
 ws = new WebSocket('ws://localhost:5000/websocket/')
-ws.onmessage = def(evt):
+
+def on_click(evt):
+    ws.send('start')
+
+jq('button.start').on('click', on_click)
+
+
+def on_message(evt):
     obj = JSON.parse(evt.data)
     print(obj)
     percent = obj['value'] / obj['total'] * 100
     jq('progress').val(percent)
     jq('.percent').text(str.format('{}%', percent.toFixed(0)))
 
-
-jq = window.jQuery
-jq('button.start').on('click', def(evt):
-    ws.send('start')
-)
+ws.onmessage = on_message

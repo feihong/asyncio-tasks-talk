@@ -1,6 +1,6 @@
 import asyncio
 import muffin
-from muffin_playground import Application, WebSocketHandler, WebSocketWriter
+from muffin_playground import Application, WebSocketWriter
 
 
 app = Application()
@@ -17,7 +17,7 @@ async def websocket(request):
     async for msg in ws:
         print(msg.data)
         if msg.data == 'start':
-            coroutine = long_task(WebSocketWriter(ws))
+            coroutine = long_task(writer)
             task = asyncio.ensure_future(coroutine)
             await task
             print('Finished task')
