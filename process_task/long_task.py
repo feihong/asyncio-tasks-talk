@@ -1,13 +1,17 @@
 import sys
 import time
 import json
-
 import websocket
 
 
-def long_task(url, name):
+def main():
+    ws_url, name = sys.argv[1:]
+    long_task(url, name)
+
+
+def long_task(ws_url, name):
     ws = websocket.WebSocket()
-    ws.connect(url)
+    ws.connect(ws_url)
 
     total = 150
     for i in range(1, total+1):
@@ -20,5 +24,4 @@ def long_task(url, name):
 
 
 if __name__ == '__main__':
-    url, name = sys.argv[1:]
-    long_task(url, name)
+    main()

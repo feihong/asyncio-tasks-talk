@@ -473,14 +473,28 @@ Now let us consider the case where you implement your task in a separate program
 - Run program: `muffin app run`
 
 ---
-## Task program
+# Task program, boilerplate
 
 ```python
+import sys
+import time
+import json
 import websocket
 
-def long_task(url, name):
+def main():
+    url, name = sys.argv[1:]
+    long_task(url, name)
+```
+
+^ In this program, we are making use of the [websocket-client](https://pypi.python.org/pypi/websocket-client) package by liris. This is a synchronous web socket client API.
+
+---
+## Task program, useful function
+
+```python
+def long_task(ws_url, name):
     ws = websocket.WebSocket()
-    ws.connect(url)
+    ws.connect(ws_url)
 
     total = 150
     for i in range(1, total+1):
@@ -491,8 +505,6 @@ def long_task(url, name):
 
     ws.close()
 ```
-
-^ In this program, we are making use of the [websocket-client](https://pypi.python.org/pypi/websocket-client) package by liris. This is a synchronous web socket client API.
 
 ---
 # Start task request handler
