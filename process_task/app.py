@@ -19,13 +19,14 @@ async def start_task(request):
     app.task_id += 1
 
     proc = await asyncio.create_subprocess_exec(
-        'python', 'long_task.py', 'ws://localhost:5000/report/', name)
+        'python', 'long_task.py', 'ws://localhost:5000/collect/', name)
 
     return str(proc)
 
 
 @app.register('/progress/')
 async def websocket(request):
+    "Add and remove web socket objects for app.sockets."
     ws = muffin.WebSocketResponse()
     await ws.prepare(request)
     app.sockets.add(ws)
@@ -37,12 +38,12 @@ async def websocket(request):
     return ws
 
 
-@app.register('/report/')
+@app.register('/collect/')
 async def websocket(request):
+    "Collect messages from task processes and send them to browser clients."
     ws = muffin.WebSocketResponse()
     await ws.prepare(request)
     async for msg in ws:
-        # print(msg.data)
         send_to_all(msg.data)
     return ws
 
