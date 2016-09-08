@@ -1,4 +1,5 @@
 from wsclient import WsClient
+jq = window.jQuery
 
 
 class MyClient(WsClient):
@@ -13,19 +14,20 @@ class MyClient(WsClient):
         if name in progress_map:
             progress = progress_map[name]
         else:
+            print('adding progress bar for ' + name)
             prog_item = jq('<div class="progress-item">').appendTo('.progress-container')
             jq('<div class="name">').text(name).appendTo(prog_item)
             progress = jq('<progress max=100>').appendTo(prog_item)
             progress_map[name] = progress
 
         if obj['value'] == obj['total']:
+            print('removing progress bar for ' + name)
             progress.parent().remove()
         else:
             percent = obj['value'] / obj['total'] * 100
             progress.val(percent)
 
 
-jq = window.jQuery
 client = MyClient()
 progress_map = {}
 
