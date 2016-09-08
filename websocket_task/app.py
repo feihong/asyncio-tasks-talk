@@ -20,5 +20,9 @@ async def websocket(request):
         print(i)
         await asyncio.sleep(0.05)
 
+        # The following won't work, because you are not allowed to make
+        # concurrent calls to ws.receive()!
+        # await asyncio.wait([ws.receive(), asyncio.sleep(0.05)], timeout=0.05)
+
     await ws.close()
     return ws
