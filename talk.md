@@ -7,20 +7,22 @@
 
 ---
 
-This talk can be found online at the repo github.com/feihong/asyncio-tasks-talk, which includes
+This talk can be found online at
 
-- Slides
-- Notes
-- Example programs
+https://github.com/feihong/asyncio-tasks-talk
+
+I will be sharing a fair amount of code during this talk. If you are not in an ideal viewing position you may want to refer to the GitHub repo so that you can read the code.
 
 ---
 # What
 
 In this talk, I will be talking about starting, stopping, and displaying incremental data from long-running tasks in an asyncio-based web application.
 
+We will also spend a little time reviewing asyncio concepts.
+
 The examples for this talk were made to run on [Muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
 
-^ The Muffin API, especially for defining routes and request handlers, seems to be modeled after the Flask API. But everything that works in aiohttp still works in Muffin.
+^ The Muffin API, especially for defining routes and request handlers, is modeled after the Flask API.
 
 ---
 # Why
@@ -101,11 +103,11 @@ asyncio.get_event_loop().run_until_complete(main())
 ^ You can only access the return value of a coroutine function inside another coroutine function, and only via the use of an `await` expression.
 
 ---
-# What is a task?
+# What is an asyncio task?
 
 In an event-loop-based program, you primarily use tasks instead of threads to implement concurrency.
 
-"Don’t directly create Task instances: use the `ensure_future()` function or the `AbstractEventLoop.create_task()` method."
+You should not directly create Task objects: use the `ensure_future()` function or the `AbstractEventLoop.create_task()` method.
 
 ^ Source: https://docs.python.org/3/library/asyncio-task.html#task
 
@@ -124,7 +126,7 @@ asyncio.ensure_future(hello())
 asyncio.get_event_loop().run_forever()
 ```
 
-^ Here, the `asyncio.ensure_future()` function schedules the execution of the given coroutine object, wraps it in a task, and returns the task.
+^ Here, the `asyncio.ensure_future()` function schedules the execution of the given coroutine object (in the background), wraps it in a task, and returns the task.
 
 ^ You should generally use `asyncio.ensure_future()` over `AbstractEventLoop.create_task()` since the former accepts any awaitable object, while the latter only accepts coroutine objects.
 
@@ -132,7 +134,7 @@ asyncio.get_event_loop().run_forever()
 # Types of tasks we'll talk about today
 
 - Asynchronous
-- Synchronous (using ThreadExecutor)
+- Synchronous (using ThreadPoolExecutor)
 - Inside web socket handler
 - Inside a separate process
 
@@ -167,6 +169,8 @@ app.register_special_static_route()
 ```
 
 ^ `WebSocketWriter` is a very small convenience class that makes it easy to send JSON-encoded data through a websocket.
+
+^ The `app.register_special_static_route()` method causes static files to be served from the current working directory. But when it encounters special files with certain extensions (.plim, .stylus, .pyj), it will compile them before serving them.
 
 ---
 # The web socket request handler
@@ -234,7 +238,7 @@ ws.onmessage = on_message
 
 Great, we can now start a long-running task from a web page! But, what if we want to give the user the ability to cancel the task?
 
-The `asyncio.Task` class has a `cancel()` method, but we now need to keep a reference to the task object. This necessitates a pretty big refactoring.
+The `asyncio.Task` class has a `cancel()` method, but if we want to use it we must keep a reference to the task object. This necessitates a refactoring.
 
 ---
 ## New web socket request handler
@@ -252,7 +256,7 @@ class WSHandler(WebSocketHandler):
     # next slide
 ```
 
-^ We now want to use a class instead of a function to handle this, because there are now callbacks involved. You could instead use inner functions but the code tends to be less readable.
+^ We now want to use a class instead of a function as the request handler, because there are now callbacks involved. You could instead use inner functions, but the code tends to be less readable.
 
 ---
 ## New web socket request handler (2)
@@ -271,7 +275,7 @@ class WSHandler(WebSocketHandler):
             self.task.cancel()
 ```
 
-^ This code not only allows you to stop the task, it also ensures that there is only one task running from a single websocket connection. You should to use `Task.add_done_callback()` here because you don't know exactly when the task will terminate. It's possible to use `await self.task` to wait until the task completes to do the cleanup, but that can lock up the handler for a long amount of time, preventing it from responding to other messages during the wait.
+^ This code not only allows you to stop the task, it also ensures that there is only one task running at a time from a single websocket connection. You should to use `Task.add_done_callback()` here because you don't know exactly when the task will terminate. It's possible to use `await self.task` to wait until the task completes to do the cleanup, but that can lock up the request handler function for a long amount of time, preventing it from responding to other messages during the wait.
 
 ---
 # Updated client code
@@ -292,7 +296,7 @@ class MyClient(WsClient):
 
 ^ The `WsClient` convenience class is provided by muffin-playground. It is made available for import because muffin-playground puts its resources directory on RapydScript's import path. Muffin-playground's resources directory contains a file called `wsclient.pyj`.
 
-^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message to decide which method should handle the message. In this case, all messages of type 'progress' will be dispatched to the `on_progress()` method.
+^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message object to decide which method should handle the message. In this case, all messages of type 'progress' will be dispatched to the `on_progress()` method.
 
 ---
 # Demo
@@ -309,7 +313,7 @@ This is a way to take advantage of synchronous code or APIs that cannot be direc
 # Task function
 
 ```python
-def long_task(writer, stop_event):
+def long_task(writer, stop_event: threading.Event):
     total = 150
     for i in range(1, total+1):
         if stop_event.is_set():
@@ -319,59 +323,77 @@ def long_task(writer, stop_event):
         time.sleep(0.05)
 ```
 
+^ You have to use a `threading.Event` object to stop a synchronous task function because there is no other viable way.
+
 ---
-# Launching the task
+# Web socket request handler
 
 ```python
-stop_event = threading.Event()
-loop = asyncio.get_event_loop()
-coroutine = loop.run_in_executor(
-  None,
-  long_task,
-  ThreadSafeWebSocketWriter(websocket),
-  stop_event)
-task = asyncio.ensure_future(coroutine)
-task.add_done_callback(done_callback)
+@app.register('/websocket/')
+class WSHandler(WebSocketHandler):
+    async def on_open(self):
+        self.future = None
+        self.writer = ThreadSafeWebSocketWriter(self.websocket)
+        self.stop_event = threading.Event()
+
+    def future_done_callback(self, future):
+        print('done!')
+        self.future = None
+        self.stop_event.clear()
+
+    # next slide
 ```
 
+^ The `ThreadSafeWebSocketWriter` class provides a thread-safe way of writing to a websocket.
+
+^ Note that we must reset `stop_event` in the cleanup method.
+
 ---
-# The on_message() method
+# ThreadSafeWebSocketWriter
 
 ```python
-async def on_message(self, msg):
-    print(msg)
-    if msg.data == 'start' and not self.task:
-        self.task = self.execute_task(
-            long_task,
-            ThreadSafeWebSocketWriter(self.websocket),
-            self.stop_event)
-        self.task.add_done_callback(self.done_callback)
-    elif msg.data == 'stop' and self.task:
-        self.stop_event.set()
+class ThreadSafeWebSocketWriter:
+    def __init__(self, wsresponse):
+        self.resp = wsresponse
+        self.loop = asyncio.get_event_loop()
+
+    def write(self, **kwargs):
+        if not self.resp.closed:
+            data = json.dumps(kwargs)
+            self.loop.call_soon_threadsafe(self.resp.send_str, data)
 ```
+
+^ The `WebSocketResponse.send_str()` method is not thread-safe, so you must call it indirectly via `AbstractEventLoop.call_soon_threadsafe()`.
 
 ---
-# Another demo
-
-```
-muffin app run
-```
-
----
-# Client code
-
-The web socket code is exactly the same! Take a look at the button click handling code:
+# Web socket request handler (2)
 
 ```python
-jq = window.jQuery
+@app.register('/websocket/')
+class WSHandler(WebSocketHandler):
+    # previous slide
 
-jq('button.start').on('click', def(evt):
-    client.send_text('start')
-)
-jq('button.stop').on('click', def(evt):
-    client.send_text('stop')
-)
+    async def on_message(self, msg):
+        print(msg)
+        if msg.data == 'start' and not self.future:
+            loop = asyncio.get_event_loop()
+            self.future = loop.run_in_executor(
+                None, long_task, self.writer, self.stop_event)
+            self.future.add_done_callback(self.future_done_callback)
+        elif msg.data == 'stop' and self.future:
+            self.stop_event.set()
 ```
+
+^ Unlike the `ensure_future()` method, `run_in_executor()` returns an `asyncio.Future` object. Although this object does have a `cancel()` method, it is only capable of cancelling a function that has not yet been executed by the thread pool. Once the task has started, the best way to cancel is by using a `threading.Event` object.
+
+^ The first argument of `run_in_executor()` is supposed to be an `Executor` object. If you give it `None`, it will use a `ThreadPoolExecutor` by default.
+
+---
+# Demo
+
+- cd into `sync_task`
+- Run program: `muffin app run`
+
 
 ---
 # Web socket handler as a task
