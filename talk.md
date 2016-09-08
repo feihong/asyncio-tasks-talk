@@ -462,7 +462,7 @@ jq('button.stop').on('click', def(evt):
 ---
 # Separate process as a task
 
-Now let us consider the case where you implement your task in a separate program, perhaps using a language that is not Python. Asyncio provides a nice, `subprocess`-like API for running commands. However, communicating with the browser is a bit more complicated because other processes have no way to access the web socket object. Thus, your web app must now have two web socket handlers: one to collect messages from the task processes and another to distribute these messages to browser clients.
+This is when your task runs in a separate program, perhaps written in a language that is not Python. Asyncio provides a subprocess-like API for running commands. However, unlike in the previous examples, you no longer have access to the web socket object. Thus, your web app must now have two web socket handlers: one to collect messages from the task processes and another to help you push these messages to browser clients.
 
 ^ We could also use `ProcessPoolExecutor` to run tasks in separate processes, but that only works for Python programs and is fairly similar to what the example that used `ThreadPoolExecutor`.
 
@@ -486,7 +486,7 @@ def main():
     long_task(url, name)
 ```
 
-^ In this program, we are making use of the [websocket-client](https://pypi.python.org/pypi/websocket-client) package by liris. This is a synchronous web socket client API.
+^ In this program, we are making use of the [websocket-client](https://pypi.python.org/pypi/websocket-client) package by [liris](https://github.com/liris). This is a popular synchronous web socket client API.
 
 ---
 ## Task program, useful function
@@ -514,17 +514,21 @@ def long_task(ws_url, name):
 async def start_task(request):
     name = '%s-%d' % (random.choice(NAMES), app.task_id)
     app.task_id += 1
-
     proc = await asyncio.create_subprocess_exec(
         'python', 'long_task.py', 'ws://localhost:5000/collect/', name)
-
     return str(proc)
 ```
 
+^ This is just a normal Ajax request handler. It returns the string form of an `asyncio.subprocess.Process` object.
+
+^ The `asyncio.create_subprocess_exec()` function is analogous to the `subprocess.call()` function, except that you don't need to pass in the arguments using a list.
+
 ---
-# Browser client web socket handler
+## Browser client web socket handler
 
 ```python
+app.sockets = set()
+
 @app.register('/progress/')
 async def websocket(request):
     ws = muffin.WebSocketResponse()
@@ -538,8 +542,10 @@ async def websocket(request):
     return ws
 ```
 
+^ All this handler function does is add to `app.sockets` when a new connection is made and remove from `app.sockets` when an existing connection is closed.
+
 ---
-# Task process web socket handler
+## Task process web socket handler
 
 ```python
 @app.register('/collect/')
@@ -552,6 +558,8 @@ async def websocket(request):
     return ws
 ```
 
+^ For every message received from a task process, broadcast that message to all browser web sockets.
+
 ---
 # Client code
 
@@ -560,4 +568,6 @@ The client code for this example is a bit long, so I won't show it on these slid
 ---
 # Conclusion
 
-Asyncio in Python 3.5 is easy to use and more powerful, especially in comparison to previous efforts. The asyncio module contains many excellent tools to help you implement various models of concurrency in your application. The asyncio ecosystem includes a number of viable options for web development, including aiohttp and Muffin.
+- Asyncio in Python 3.5 is powerful and easy to use (especially in comparison to previous efforts)
+- The asyncio module contains many excellent tools to help you implement various types of concurrency in your application.
+- The asyncio ecosystem includes a number of viable options for web development, including aiohttp and Muffin.
