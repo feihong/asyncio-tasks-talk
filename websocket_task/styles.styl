@@ -1,25 +1,14 @@
-.results
-  .result-row
-    display flex
-    margin-bottom 0.8em
+.buttons
+  button
+    margin-right 1em
 
-  .result
-    border 1px solid gray
-    border-radius 5px
-    padding-top 0.5em
-    padding-bottom 0.5em
-    width 3em
-    text-align center
-    margin-right 0.8em
-    background-color lightsalmon
+.progress-container
+  width 100%
+  display flex
+  flex-direction row
 
-    &.incomplete
-      background-color gainsboro
-      color gray
+  .percent
+    margin-right 1em
 
-.glyphicon.spinning
-  animation spin 1s infinite linear
-
-@keyframes spin
-  from { transform: rotate(0deg) }
-  to { transform: rotate(360deg) }
+  progress
+    flex 1

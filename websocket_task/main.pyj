@@ -1,27 +1,26 @@
 from wsclient import WsClient
+jq = window.jQuery
 
 
 class MyClient(WsClient):
     url = '/websocket/'
     auto_dispatch = True
 
-    def on_open(self, evt):
-        print('Websocket opened')
-
-    def on_close(self, evt):
-        print('Websocket closed')
-
-    def on_results(evt, obj):
+    def on_progress(self, obj):
         print(obj)
-        row = jq('.results .result-row').get(obj['page'])
-        row = jq(row)
-        obj['value'].forEach(def(value, index):
-            result = jq(row.find('.result').get(index))
-            result
-            .empty()
-            .removeClass('incomplete')
-            .text(value)
-        )
+        percent = obj['value'] / obj['total'] * 100
+        jq('progress').val(percent)
+        jq('.percent').text(str.format('{}%', percent.toFixed(0)))
 
-jq = window.jQuery
-client = MyClient()
+
+client = None
+
+
+jq('button.start').on('click', def(evt):
+    nonlocal client
+    client = MyClient()
+)
+jq('button.stop').on('click', def(evt):
+    if client is not None:
+        client.close()
+)

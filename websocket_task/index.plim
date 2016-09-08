@@ -13,15 +13,12 @@
   .container
     h1 = title()
 
-    p Use a web socket handler to push multiple pieces of data to the client after initial page load.
+    p Start, stop, and view progress of a task implemented inside a web socket response handler.
 
-    .results
-      .result-row
-        -for result in results
-          .result = result
+    p.buttons
+      button.btn.btn-default.start Start
+      button.btn.btn-default.stop Stop
 
-      -for i in range(9):
-        .result-row
-          -for j in range(page_size):
-            .result.incomplete
-              span.glyphicon.glyphicon-repeat.spinning
+    .progress-container
+      .percent 0%
+      progress value=0 max=100
