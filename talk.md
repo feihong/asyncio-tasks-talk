@@ -312,6 +312,12 @@ class MyClient(WsClient):
 This is a way to take advantage of synchronous code or APIs that cannot be directly run by the asyncio event loop. This time, you define the logic inside a normal function, and have asyncio execute the function using a thread pool. You have to be more careful about writing to websockets because your task is running from another thread and asyncio methods are generally not thread safe.
 
 ---
+# Demo #3
+
+- `cd` into `sync_task`
+- Run program: `muffin app run`
+
+---
 # Task function
 
 ```python
@@ -325,10 +331,10 @@ def long_task(writer, stop_event: threading.Event):
         time.sleep(0.05)
 ```
 
-^ You have to use a `threading.Event` object to stop a synchronous task function because there is no other viable way.
+^ This function accepts a `threading.Event` object to provide a way to stop the long-running operation. Unlike generator functions and coroutine functions, there is no way for a vanilla Python function to "yield" control to the calling function.
 
 ---
-# Web socket request handler
+# Web socket request handler (1)
 
 ```python
 @app.register('/websocket/')
@@ -339,7 +345,6 @@ class WSHandler(WebSocketHandler):
         self.stop_event = threading.Event()
 
     def future_done_callback(self, future):
-        print('done!')
         self.future = None
         self.stop_event.clear()
 
@@ -347,6 +352,8 @@ class WSHandler(WebSocketHandler):
 ```
 
 ^ The `ThreadSafeWebSocketWriter` class provides a thread-safe way of writing to a websocket.
+
+^ In this class, our attribute is called `future` because the function used to schedule synchronous functions returns an object of type `asyncio.Future`.
 
 ^ Note that we must reset `stop_event` in the cleanup method.
 
@@ -365,7 +372,7 @@ class ThreadSafeWebSocketWriter:
             self.loop.call_soon_threadsafe(self.resp.send_str, data)
 ```
 
-^ The `WebSocketResponse.send_str()` method is not thread-safe, so you must call it indirectly via `AbstractEventLoop.call_soon_threadsafe()`.
+^ The `WebSocketResponse.send_str()` method is not thread safe, so you must call it indirectly via `AbstractEventLoop.call_soon_threadsafe()`.
 
 ---
 # Web socket request handler (2)
@@ -386,7 +393,7 @@ class WSHandler(WebSocketHandler):
             self.stop_event.set()
 ```
 
-^ Unlike the `ensure_future()` method, `run_in_executor()` returns an `asyncio.Future` object. Although this object does have a `cancel()` method, it is only capable of cancelling a function that has not yet been executed by the thread pool. Once the task has started, the best way to cancel is by using a `threading.Event` object.
+^ Unlike the `ensure_future()` method, `run_in_executor()` returns an `asyncio.Future` object (because `asyncio.Task` must wrap a coroutine, and in this case the task function is not a coroutine function). Although `self.future` does have a `cancel()` method, it is only capable of cancelling if the function has not yet been executed by the thread pool. Once the function has started, the easiest way to stop its execution is by using a `threading.Event` object.
 
 ^ The first argument of `run_in_executor()` is supposed to be an `Executor` object. If you give it `None`, it will use a `ThreadPoolExecutor` by default.
 
@@ -394,13 +401,6 @@ class WSHandler(WebSocketHandler):
 # Client code
 
 It's the same as the previous example!
-
----
-# Demo
-
-- cd into `sync_task`
-- Run program: `muffin app run`
-
 
 ---
 # Web socket handler as a task
