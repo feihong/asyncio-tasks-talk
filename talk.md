@@ -462,6 +462,10 @@ jq('button.stop').on('click', def(evt):
 ---
 # Separate process as a task
 
+Now let us consider the case where you implement your task in a separate program, perhaps using a language that is not Python. Asyncio provides a nice, `subprocess`-like API for running commands. However, communicating with the browser is a bit more complicated because other processes have no way to access the web socket object. Thus, your web app must now have two web socket handlers: one to collect messages from the task processes and another to distribute these messages to browser clients.
+
+^ We could also use `ProcessPoolExecutor` to run tasks in separate processes, but that only works for Python programs and is fairly similar to what the example that used `ThreadPoolExecutor`.
+
 ---
 # Demo #5
 
@@ -469,7 +473,7 @@ jq('button.stop').on('click', def(evt):
 - Run program: `muffin app run`
 
 ---
-# Task program
+## Task program
 
 ```python
 import websocket
@@ -491,21 +495,17 @@ def long_task(url, name):
 ^ In this program, we are making use of the [websocket-client](https://pypi.python.org/pypi/websocket-client) package by liris. This is a synchronous web socket client API.
 
 ---
-# Web socket handler
+# Start task request handler
 
+---
+# Browser client web socket handler
+
+---
+# Task process web socket handler
 
 ---
 # Client code
 
-
----
-# Some notes about the examples
-
-- I'm using a project called [muffin-playground](https://github.com/feihong/muffin-playground), which provides convenience classes that reduce boilerplate code.
-- Muffin-playground supports auto-compilation of these languages:
-  - RapydScript Python-to-JavaScript compiler (.pyj)
-  - Plim template engine (.plim)
-  - Stylus CSS preprocessor (.styl)
 
 ---
 # Conclusion
