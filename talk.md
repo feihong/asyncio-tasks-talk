@@ -146,6 +146,12 @@ asyncio.get_event_loop().run_forever()
 This is the simplest way to implement concurrency in an asyncio web app. You define the logic using a coroutine function, and schedule it using the `asyncio.ensure_future()` function. To send messages to the client, directly write to the websocket from inside your coroutine function.
 
 ---
+# Demo #1
+
+- `cd` into `async_task_v1`
+- Run program: `muffin app run`
+
+---
 # Task function
 
 ```python
@@ -168,9 +174,9 @@ app = Application()
 app.register_special_static_route()
 ```
 
-^ `WebSocketWriter` is a very small convenience class that makes it easy to send JSON-encoded data through a websocket.
+^ `WebSocketWriter` is a small convenience class provided by muffin-playground that makes it easy to send JSON-encoded data through a websocket.
 
-^ The `app.register_special_static_route()` method causes static files to be served from the current working directory. But when it encounters special files with certain extensions (.plim, .stylus, .pyj), it will compile them before serving them.
+^ The `muffin_playground.Application.register_special_static_route()` method causes static files to be served from the current working directory. In addition, when it encounters special source files with certain extensions (.plim, .stylus, .pyj), it will first compile them and then serve the compiled version of the file.
 
 ---
 # The web socket request handler
@@ -195,13 +201,7 @@ async def websocket(request):
 ^ Note the `async for` syntax. This was introduced in Python 3.5 along with the `async def` and `async with` syntax. In this example, the async for loop automatically terminates when the `WebSocketResponse` object receives a message of type `MSG_CLOSE`.
 
 ---
-# Demo
-
-- cd into `async_task_v1`
-- Run program: `muffin app run`
-
----
-# Client code
+# Client code, boilerplate
 
 ```python
 jq = window.jQuery
@@ -213,7 +213,7 @@ def on_click(evt):
 jq('button.start').on('click', on_click)
 ```
 
-^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the new operator, which is special syntax that the RapydScript compiler supports.
+^ The client code here was written in Python, and compiled with [RapydScript](https://github.com/kovidgoyal/rapydscript-ng), a Python-to-JavaScript compiler. Note the `new` operator, which is special syntax that the RapydScript compiler supports.
 
 ^ We could've also used an Ajax call to start the task. But in this example, we want to receive messages from the websocket, so it makes more sense to send the 'start' message through the websocket (saving us from having to write another request handler).
 
@@ -238,10 +238,16 @@ ws.onmessage = on_message
 
 Great, we can now start a long-running task from a web page! But, what if we want to give the user the ability to cancel the task?
 
-The `asyncio.Task` class has a `cancel()` method, but if we want to use it we must keep a reference to the task object. This necessitates a refactoring.
+The `asyncio.Task` class has a `cancel()` method, but if we want to use it we must keep a reference to the task object and add some cleanup logic when the task completes. This necessitates some refactoring.
 
 ---
-## New web socket request handler
+# Demo
+
+- `cd` into `async_task_v2`
+- Run program: `muffin app run`
+
+---
+## New web socket request handler (1)
 
 ```python
 @app.register('/websocket/')
@@ -256,7 +262,9 @@ class WSHandler(WebSocketHandler):
     # next slide
 ```
 
-^ We now want to use a class instead of a function as the request handler, because there are now callbacks involved. You could instead use inner functions, but the code tends to be less readable.
+^ We now want to use a class instead of a function as the request handler, because there are now callbacks involved. You could instead use a function that contains inner functions, but that sort of code can quickly devolve into an unreadable mess.
+
+^ `muffin_playground.WebSocketHandler` is a small convenience class that lets you implement your handler logic by overriding methods that correspond to web socket events.
 
 ---
 ## New web socket request handler (2)
@@ -275,7 +283,7 @@ class WSHandler(WebSocketHandler):
             self.task.cancel()
 ```
 
-^ This code not only allows you to stop the task, it also ensures that there is only one task running at a time from a single websocket connection. You should to use `Task.add_done_callback()` here because you don't know exactly when the task will terminate. It's possible to use `await self.task` to wait until the task completes to do the cleanup, but that can lock up the request handler function for a long amount of time, preventing it from responding to other messages during the wait.
+^ This code not only allows you to stop the task, it also ensures that there is only one task running at a time from a single websocket connection. You should use `Task.add_done_callback()` here because you don't know exactly when the task will terminate. It's possible to use `await self.task` to wait until the task completes to do the cleanup, but that can lock up the request handler function for a long amount of time, preventing it from responding to other messages during the wait.
 
 ---
 # Updated client code
@@ -294,15 +302,9 @@ class MyClient(WsClient):
         jq('.percent').text(str.format('{}%', percent.toFixed(0)))
 ```
 
-^ The `WsClient` convenience class is provided by muffin-playground. It is made available for import because muffin-playground puts its resources directory on RapydScript's import path. Muffin-playground's resources directory contains a file called `wsclient.pyj`.
+^ The `WsClient` convenience class is provided by muffin-playground. It is available for import because muffin-playground puts its resources directory on RapydScript's import path. Inside muffin-playground's resources directory you will see a file called `wsclient.pyj`.
 
-^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message object to decide which method should handle the message. In this case, all messages of type 'progress' will be dispatched to the `on_progress()` method.
-
----
-# Demo
-
-- cd into `async_task_v2`
-- Run program: `muffin app run`
+^ When the `auto_dispatch` attribute is set to `True`, the `WsClient` looks at the type property of a received message object to decide which method should handle it. In this example, all messages of type 'progress' will be dispatched to the `on_progress()` method.
 
 ---
 # Synchronous task
@@ -387,6 +389,11 @@ class WSHandler(WebSocketHandler):
 ^ Unlike the `ensure_future()` method, `run_in_executor()` returns an `asyncio.Future` object. Although this object does have a `cancel()` method, it is only capable of cancelling a function that has not yet been executed by the thread pool. Once the task has started, the best way to cancel is by using a `threading.Event` object.
 
 ^ The first argument of `run_in_executor()` is supposed to be an `Executor` object. If you give it `None`, it will use a `ThreadPoolExecutor` by default.
+
+---
+# Client code
+
+It's the same as the previous example!
 
 ---
 # Demo
