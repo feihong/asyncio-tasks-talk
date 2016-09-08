@@ -398,9 +398,9 @@ class WSHandler(WebSocketHandler):
 ---
 # Web socket handler as a task
 
-The web socket handler is essentially a task, since it runs for as long as the server maintains a `ws://` connection with the browser.
+The web socket response handler is essentially a long-running task, since it runs for as long as the server maintains a web socket connection with the browser.
 
-If you don't need the task to keep running after the web socket is closed, then this is a good solution.
+In the previous two cases, the task would keep running even if the web page is closed. If you don't need this behavior, then putting the task logic inside the web socket response handler is a good choice.
 
 ---
 # Task function
