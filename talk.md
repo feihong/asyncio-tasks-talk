@@ -410,66 +410,54 @@ The web socket response handler is essentially a long-running task, since it run
 In the previous two cases, the task would keep running even if the web page is closed. If you don't need this behavior, then putting the task logic inside the web socket response handler is a good choice.
 
 ---
-# Task function
+# Demo #4
 
-```python
-async def fetch(page):
-    if page >= 11:
-        return None
-    start = (page - 1) * PAGE_SIZE + 1
-    end = start + PAGE_SIZE
-    await asyncio.sleep(1)
-    return [i for i in range(start, end)]
-```
+- `cd` into `websocket_task`
+- Run program: `muffin app run`
+
+^ Note that pressing the Stop button makes the progress bar stop updating, but if you look at the console, you'll see that the underlying task continues running!
 
 ---
-# The request handler function
-
-```python
-@app.register('/')
-async def index(request):
-    results = await fetch(1)
-    return app.render('index.plim', results=results)
-```
-
----
-# The web socket handler function
+### Web socket request handler
 
 ```python
 @app.register('/websocket/')
 async def websocket(request):
-    # ...
-    page = 2
-    while not ws.closed:
-        results = await fetch(page)
-        if results is None:
-            break
-        writer.write(type='results', value=results)
-        page += 1
-    # ...
+    ws = muffin.WebSocketResponse()
+    await ws.prepare(request)
+    writer = WebSocketWriter(ws)
+
+    total = 150
+    for i in range(1, total+1):
+        writer.write(type='progress', value=i, total=total)
+        print(i)
+        await asyncio.sleep(0.05)
+
+    await ws.close()
+    return ws
 ```
 
----
-# The last demo
-
-```
-muffin app run
-```
+^ The reason that the code keeps running even after you close the connection is because calls to `WebSocketResponse.receive()` **must** happen in the same coroutine that the web socket object is created in. But if you do run the `await ws.receive()`, the coroutine function will block indefinitely, preventing you from sending messages to the client. Basically, if you want to write a task in a web socket request handler, you should limit it to operations that don't take a very long time. Otherwise, use a different coroutine function to write to the web socket and schedule it using `asyncio.ensure_future()`.
 
 ---
 # Client code
 
 ```python
-class MyClient(WsClient):
-    url = '/websocket/'
-    auto_dispatch = True
+client = None
 
-    def on_results(evt, obj):
-        print(obj)
-        row = jq('<div class="result-row">').appendTo('.results')
-        for v in obj['value']:
-            jq('<div class="result">').text(v).appendTo(row)
+jq('button.start').on('click', def(evt):
+    nonlocal client
+    client = MyClient()
+)
+jq('button.stop').on('click', def(evt):
+    if client is not None:
+        client.close()
+)
 ```
+
+^ The definition of the `MyClient` class is the same as in the previous examples.
+
+^ We stop the update messages from coming by simply closing the web socket connection from the client side.
 
 ---
 # Some notes about the examples
