@@ -497,19 +497,55 @@ def long_task(url, name):
 ---
 # Start task request handler
 
+```python
+@app.register('/start-task/')
+async def start_task(request):
+    name = '%s-%d' % (random.choice(NAMES), app.task_id)
+    app.task_id += 1
+
+    proc = await asyncio.create_subprocess_exec(
+        'python', 'long_task.py', 'ws://localhost:5000/collect/', name)
+
+    return str(proc)
+```
+
 ---
 # Browser client web socket handler
+
+```python
+@app.register('/progress/')
+async def websocket(request):
+    ws = muffin.WebSocketResponse()
+    await ws.prepare(request)
+    app.sockets.add(ws)
+
+    async for msg in ws:
+        pass
+
+    app.sockets.remove(ws)
+    return ws
+```
 
 ---
 # Task process web socket handler
 
+```python
+@app.register('/collect/')
+async def websocket(request):
+    ws = muffin.WebSocketResponse()
+    await ws.prepare(request)
+    async for msg in ws:
+        for ws in app.sockets:
+            ws.send_str(msg.data)
+    return ws
+```
+
 ---
 # Client code
 
+The client code for this example is a bit long, so I won't show it on these slides. The basic difference with previous examples is that progress bars are be added as tasks start and progress bars are removed as tasks end.
 
 ---
 # Conclusion
 
-- Asyncio makes it easy to work with tasks and web sockets
-- Asyncio web app frameworks are ready for primetime (probably)
-- Python in the browser is in an interesting place right now
+Asyncio in Python 3.5 is easy to use and more powerful, especially in comparison to previous efforts. The asyncio module contains many excellent tools to help you implement various models of concurrency in your application. The asyncio ecosystem includes a number of viable options for web development, including aiohttp and Muffin.

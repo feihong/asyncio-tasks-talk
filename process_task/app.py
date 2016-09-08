@@ -44,10 +44,6 @@ async def websocket(request):
     ws = muffin.WebSocketResponse()
     await ws.prepare(request)
     async for msg in ws:
-        send_to_all(msg.data)
+        for ws in app.sockets:
+            ws.send_str(msg.data)
     return ws
-
-
-def send_to_all(data):
-    for ws in app.sockets:
-        ws.send_str(data)
