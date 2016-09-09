@@ -6,8 +6,7 @@
 ### github.com/feihong
 
 ---
-
-This talk can be found online at
+# This talk is on GitHub
 
 https://github.com/feihong/asyncio-tasks-talk
 
@@ -20,7 +19,7 @@ In this talk, I will be talking about starting, stopping, and displaying increme
 
 We will also spend a little time reviewing asyncio concepts.
 
-The examples for this talk were made to run on [Muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
+^ The examples for this talk were made to run on [Muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
 
 ^ The Muffin API, especially for defining routes and request handlers, is modeled after the Flask API.
 
@@ -69,7 +68,7 @@ If you don't need to worry about backwards compatibility, you should almost alwa
 ^ New-style coroutine functions are more readable and more explicit. The `@asyncio.coroutine` decorator doesn't actually enforce anything, and can be successfully applied to a non-coroutine function. You'll only find out the hard way when your program crashes.
 
 ---
-# A very simple coroutine function
+## A very simple coroutine function
 
 ```python
 import asyncio
@@ -84,7 +83,7 @@ asyncio.get_event_loop().run_until_complete(coroutine)
 ^ If the `hello` function was not defined with `async def`, it would implicitly return `None`. Instead, it returns a coroutine object.
 
 ---
-# Return values of coroutine functions
+## Return values of coroutine functions
 
 ```python
 import asyncio
@@ -143,7 +142,9 @@ asyncio.get_event_loop().run_forever()
 ---
 # Asynchronous task
 
-This is the simplest way to implement concurrency in an asyncio web app. You define the logic using a coroutine function, and schedule it using the `asyncio.ensure_future()` function. To send messages to the client, directly write to the websocket from inside your coroutine function.
+- Simplest way to implement concurrency in asyncio web app.
+- Define logic using a coroutine function, schedule it using the `asyncio.ensure_future()` function.
+- Send messages to the client by using the websocket object in your coroutine function.
 
 ---
 # Demo #1
@@ -179,7 +180,7 @@ app.register_special_static_route()
 ^ The `muffin_playground.Application.register_special_static_route()` method causes static files to be served from the current working directory. In addition, when it encounters special source files with certain extensions (.plim, .stylus, .pyj), it will first compile them and then serve the compiled version of the file.
 
 ---
-# The web socket request handler
+## The web socket request handler
 
 ```python
 @app.register('/websocket/')
@@ -309,7 +310,10 @@ class MyClient(WsClient):
 ---
 # Synchronous task
 
-This is a way to take advantage of synchronous code or APIs that cannot be directly run by the asyncio event loop. This time, you define the logic inside a normal function, and have asyncio execute the function using a thread pool. You have to be more careful about writing to websockets because your task is running from another thread and asyncio methods are generally not thread safe.
+- Run synchronous code that cannot be directly run by the asyncio event loop.
+- Define logic inside a normal function.
+- Asyncio will execute the function using a thread pool.
+- Be careful about writing to websockets because most asyncio functions are not thread safe.
 
 ---
 # Demo #3
@@ -334,7 +338,7 @@ def long_task(writer, stop_event: threading.Event):
 ^ This function accepts a `threading.Event` object to provide a way to stop the long-running operation. Unlike generator functions and coroutine functions, there is no way for a vanilla Python function to "yield" control to the calling function.
 
 ---
-# Web socket request handler (1)
+## Web socket request handler (1)
 
 ```python
 @app.register('/websocket/')
@@ -358,7 +362,7 @@ class WSHandler(WebSocketHandler):
 ^ Note that we must reset `stop_event` in the cleanup method.
 
 ---
-# ThreadSafeWebSocketWriter
+## ThreadSafeWebSocketWriter
 
 ```python
 class ThreadSafeWebSocketWriter:
@@ -375,7 +379,7 @@ class ThreadSafeWebSocketWriter:
 ^ The `WebSocketResponse.send_str()` method is not thread safe, so you must call it indirectly via `AbstractEventLoop.call_soon_threadsafe()`.
 
 ---
-# Web socket request handler (2)
+## Web socket request handler (2)
 
 ```python
 @app.register('/websocket/')
@@ -462,7 +466,11 @@ jq('button.stop').on('click', def(evt):
 ---
 # Separate process as a task
 
-This is when your task runs in a separate program, perhaps written in a language that is not Python. Asyncio provides a subprocess-like API for running commands. However, unlike in the previous examples, you no longer have access to the web socket object. Thus, your web app must now have two web socket handlers: one to collect messages from the task processes and another to help you push these messages to browser clients.
+- Task runs in separate program
+- Asyncio provides subprocess-like API for running commands
+- You web app now needs two web socket handlers:
+  - Collect messages from task processes
+  - Push messages to browser clients
 
 ^ We could also use `ProcessPoolExecutor` to run tasks in separate processes, but that only works for Python programs and is fairly similar to what the example that used `ThreadPoolExecutor`.
 
@@ -571,3 +579,6 @@ The client code for this example is a bit long, so I won't show it on these slid
 - Asyncio in Python 3.5 is powerful and easy to use (especially in comparison to previous efforts)
 - The asyncio module contains many excellent tools to help you implement various types of concurrency in your application.
 - The asyncio ecosystem includes a number of viable options for web development, including aiohttp and Muffin.
+
+---
+# Questions?
