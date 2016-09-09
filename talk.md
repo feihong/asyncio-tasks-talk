@@ -409,9 +409,10 @@ It's the same as the previous example!
 ---
 # Web socket handler as a task
 
-The web socket handler is essentially a long-running task, since it runs for as long as the server maintains a web socket connection with the browser.
-
-In the previous two examples, the task could run indefinitely, even if the web page closed. If you need a relatively short-lived task that only needs to run while the web page is open, then it might be a good idea to put the logic directly inside the web socket handler.
+- Web socket handler is essentially a long-running task anyway
+- Implement the logic after the web socket connection is opened
+- Makes sense if the task doesn't need to run for very long
+- Note that a web socket handler cannot simultaneously read and write to the socket at the same time
 
 ---
 # Demo #4
@@ -530,6 +531,8 @@ async def start_task(request):
 ^ This is just a normal Ajax request handler. It returns the string form of an `asyncio.subprocess.Process` object.
 
 ^ The `asyncio.create_subprocess_exec()` function is analogous to the `subprocess.call()` function, except that you don't need to pass in the arguments using a list.
+
+^ If you want to use Celery to schedule your tasks, just replace the call to `asyncio.create_subprocess_exec` with a call to `task.delay()`.
 
 ---
 ## Browser client web socket handler
