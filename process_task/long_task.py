@@ -6,7 +6,7 @@ import websocket
 
 def main():
     ws_url, name = sys.argv[1:]
-    long_task(url, name)
+    long_task(ws_url, name)
 
 
 def long_task(ws_url, name):
