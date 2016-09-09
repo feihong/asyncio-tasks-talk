@@ -15,9 +15,7 @@ I will be sharing a fair amount of code during this talk. If you are not in an i
 ---
 # What
 
-In this talk, I will be talking about starting, stopping, and displaying incremental data from long-running tasks in an asyncio-based web application.
-
-We will also spend a little time reviewing asyncio concepts.
+In this talk, I cover how to implement different types of tasks in an asyncio-based web application, including how to start them, stop them, and send incremental data to a web frontend using websockets. I will also spend a little time reviewing asyncio concepts.
 
 ^ The examples for this talk were made to run on [Muffin](https://github.com/klen/muffin), a high-level web framework built on top of [aiohttp](https://github.com/KeepSafe/aiohttp).
 
